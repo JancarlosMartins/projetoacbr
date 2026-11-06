@@ -625,6 +625,7 @@ procedure TNFSeR_PadraoNacional.LerXMLEnderecoNacionalFornecedor(
   const ANode: TACBrXmlNode; Item: Integer);
 var
   AuxNode: TACBrXmlNode;
+  xUF: string;
 begin
   AuxNode := ANode.Childrens.FindAnyNs('endNac');
 
@@ -634,6 +635,10 @@ begin
     begin
       CodigoMunicipio := ObterConteudo(AuxNode.Childrens.FindAnyNs('cMun'), tcStr);
       CEP := ObterConteudo(AuxNode.Childrens.FindAnyNs('CEP'), tcStr);
+      xMunicipio := ObterNomeMunicipioUF(StrToIntDef(CodigoMunicipio, 0), xUF);
+
+      if UF = '' then
+        UF := xUF;
     end;
   end;
 end;
@@ -854,12 +859,17 @@ procedure TNFSeR_PadraoNacional.LerXMLinfDPS(const ANode: TACBrXmlNode);
 var
   AuxNode: TACBrXmlNode;
   Ok: Boolean;
+  Lvalor: string;
 begin
   AuxNode := ANode.Childrens.FindAnyNs('infDPS');
 
   if AuxNode <> nil then
   begin
-    NFSe.infID.ID := OnlyNumber(ObterConteudoTag(AuxNode.Attributes.Items['Id']));
+    NFSe.infID.ID := RemoverLiteralChave(ObterConteudoTag(AuxNode.Attributes.Items['Id']));
+
+    if NFSe.infID.ID = '' then
+      NFSe.infID.ID := RemoverLiteralChave(ObterConteudoTag(AuxNode.Attributes.Items['id']));
+
     NFSe.DataEmissaoRPS := ObterConteudo(AuxNode.Childrens.FindAnyNs('dhEmi'), tcDatHor);
     NFSe.verAplic := ObterConteudo(AuxNode.Childrens.FindAnyNs('verAplic'), tcStr);
     NFSe.IdentificacaoRps.Serie := ObterConteudo(AuxNode.Childrens.FindAnyNs('serie'), tcStr);
@@ -882,7 +892,12 @@ begin
     // Reforma Tributária
     LerXMLIBSCBSDPS(AuxNode.Childrens.FindAnyNs('IBSCBS'), NFSe.IBSCBS);
 
-    NFSe.IBSCBS.finNFSe := StrTofinNFSe(ObterConteudo(AuxNode.Childrens.FindAnyNs('finNFSe'), tcStr));
+    lvalor := ObterConteudo(AuxNode.Childrens.FindAnyNs('finNFSe'), tcStr);
+
+    if Lvalor = '' then
+      NFSe.IBSCBS.finNFSe := fnfsRegular
+    else
+      NFSe.IBSCBS.finNFSe := StrTofinNFSe(Lvalor);
   end;
 end;
 
@@ -934,7 +949,11 @@ begin
     gerado automaticamente pelo sistema gerador da NFS-e.
     }
 
-    NFSe.infNFSe.ID := OnlyNumber(ObterConteudoTag(AuxNode.Attributes.Items['Id']));
+    NFSe.infNFSe.ID := RemoverLiteralChave(ObterConteudoTag(AuxNode.Attributes.Items['Id']));
+
+    if NFSe.infNFSe.ID = '' then
+      NFSe.infNFSe.ID := RemoverLiteralChave(ObterConteudoTag(AuxNode.Attributes.Items['id']));
+
     NFSe.infNFSe.xLocEmi := ObterConteudo(AuxNode.Childrens.FindAnyNs('xLocEmi'), tcStr);
     NFSe.infNFSe.xLocPrestacao := ObterConteudo(AuxNode.Childrens.FindAnyNs('xLocPrestacao'), tcStr);
     NFSe.infNFSe.nNFSe := ObterConteudo(AuxNode.Childrens.FindAnyNs('nNFSe'), tcStr);
@@ -954,6 +973,12 @@ begin
     NFSe.Servico.MunicipioIncidencia := NFSe.infNFSe.cLocIncid;
     NFSe.Servico.xMunicipioIncidencia := NFSe.infNFSe.xLocIncid;
     NFSe.DataEmissao := NFSe.infNFSe.dhProc;
+
+    if NFSe.infNFSe.UFLocIncid = EmptyStr then
+    begin
+      ObterNomeMunicipioUF(NFSe.infNFSe.cLocIncid, lUF);
+      NFSe.infNFSe.UFLocIncid := lUF;
+    end;
 
     LerXMLEmitente(AuxNode);
     LerXMLValoresNFSe(AuxNode);
@@ -1030,6 +1055,7 @@ begin
     begin
       NFSe.InfNFSe.IBSCBS.cLocalidadeIncid := NFSe.InfNFSe.cLocIncid;
       NFSe.InfNFSe.IBSCBS.xLocalidadeIncid := NFSe.infNFSe.xLocIncid;
+      NFSe.InfNFSe.IBSCBS.UFLocalidadeIncid := NFSe.infNFSe.UFLocIncid;
     end;
 
     if NFSe.infNFSe.xLocEmi = NFSe.Emitente.Endereco.xMunicipio then
