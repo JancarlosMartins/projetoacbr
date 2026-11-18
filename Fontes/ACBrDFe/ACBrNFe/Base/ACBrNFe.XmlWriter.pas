@@ -722,18 +722,22 @@ end;
 function TNFeXmlWriter.GerarEmit: TACBrXmlNode;
 begin
   Result := FDocument.CreateElement('emit');
+
   Result.AppendChild(AddNodeCNPJCPF('C02', 'C02a', NFe.Emit.CNPJCPF));
+
   Result.AppendChild(AddNode(tcStr, 'C03', 'xNome', 02, 60, 1,
-    NFe.Emit.xNome, DSC_XNOME));
+                                                    NFe.Emit.xNome, DSC_XNOME));
+
   Result.AppendChild(AddNode(tcStr, 'C04', 'xFant', 01, 60, 0,
-    NFe.Emit.xFant, DSC_XFANT));
+                                                    NFe.Emit.xFant, DSC_XFANT));
+
   Result.AppendChild(GerarEmitEnderEmit);
-  //Gerador.IDNivel := 'C01';
+
   if NFe.Emit.IE = 'ISENTO' then
     Result.AppendChild(AddNode(tcStr, 'C17', 'IE', 00, 14, 1, NFe.Emit.IE, DSC_IE))
   else
     Result.AppendChild(AddNode(tcStr, 'C17', 'IE', 00, 14, 0,
-      OnlyNumber(NFe.Emit.IE), DSC_IE));
+                                              OnlyNumber(NFe.Emit.IE), DSC_IE));
 
   if (Opcoes.ValidarInscricoes) and (NFe.Ide.procEmi <> peAvulsaFisco) then
   begin
@@ -745,21 +749,28 @@ begin
         wAlerta('C17', 'IE', DSC_IE, ERR_MSG_INVALIDO);
     end;
   end;
+
   Result.AppendChild(AddNode(tcStr, 'C18', 'IEST', 02, 14, 0,
-    NFe.Emit.IEST, DSC_IEST));
+                                                      NFe.Emit.IEST, DSC_IEST));
+
   Result.AppendChild(AddNode(tcStr, 'C19', 'IM', 01, 15, 0, NFe.Emit.IM, DSC_IM));
+
   // NT 2013/005 versão 1.03
   // o CNAE passa ser opcional mesmo quando informado o IM, mas o CNAE só pode
   // ser informado se o IM for informado.
   if Length(NFe.Emit.IM) > 0 then
     Result.AppendChild(AddNode(tcStr, 'C20', 'CNAE', 07, 07, 0,
-      NFe.Emit.CNAE, DSC_CNAE));
+                                                      NFe.Emit.CNAE, DSC_CNAE));
+
   if NFe.infNFe.Versao >= 2 then
     Result.AppendChild(AddNode(tcStr, 'C21', 'CRT', 01, 01, 1,
-      CRTToStr(NFe.Emit.CRT), DSC_CRT));
+                                              CRTToStr(NFe.Emit.CRT), DSC_CRT));
+
+  Result.AppendChild(AddNode(tcStr, '#104', 'tpRegimeIBSCBS', 1, 1, 0,
+             tpRegimeIBSCBSToStr(NFe.Emit.tpRegimeIBSCBS), DSC_TPREGIMEIBSCBS));
 
   Result.AppendChild(AddNode(tcStr, 'C22', 'ISUFEmit', 8, 9, 0,
-    NFe.Emit.ISUFEmit, DSC_ISUFEMIT));
+                                              NFe.Emit.ISUFEmit, DSC_ISUFEMIT));
 end;
 
 function TNFeXmlWriter.GerarEmitEnderEmit: TACBrXmlNode;
@@ -1235,6 +1246,12 @@ begin
   Result.AppendChild(AddNode(tcDe2, 'I11', 'vProd', 00, 15, 1,
     NFe.Det[i].Prod.vProd, DSC_VPROD));
 
+  Result.AppendChild(AddNode(tcDe10, 'I11', 'vUnComLiq', 00, 15, 0,
+                                     NFe.Det[i].Prod.vUnComLiq, DSC_VUNCOMLIQ));
+
+  Result.AppendChild(AddNode(tcDe2, 'I11', 'vProdLiq', 00, 15, 0,
+                                       NFe.Det[i].Prod.vProdLiq, DSC_VPRODLIQ));
+
   // Implementação futura - regra de validação somente em 01/12/2018
   if (NFe.infNFe.Versao >= 4) and (trim(NFe.Det[i].Prod.cEANTrib) = '') and
      (CompareDate(NFe.Ide.dEmi, StringToDateTime('01/12/2018')) > 0) then
@@ -1275,6 +1292,9 @@ begin
   if (NFe.infNFe.Versao >= 4) and (NFe.Det[i].Prod.indBemMovelUsado = tieSim) then
     Result.AppendChild(AddNode(tcStr, 'I17c', 'indBemMovelUsado', 1, 1, 1,
       TIndicadorExToStr(NFe.Det[i].Prod.indBemMovelUsado), DSC_INDBEMMOVELUSADO));
+
+  Result.AppendChild(AddNode(tcStr, 'I17d', 'cAtivSN', 2, 2, 0,
+                           cAtivSNToStr(NFe.Det[i].Prod.cAtivSN), DSC_CATIVSN));
 
   nodeArray := GerarDetProdDI(i);
   for j := 0 to NFe.Det[i].Prod.DI.Count - 1 do
@@ -1890,6 +1910,12 @@ begin
         Result.AppendChild(GerarDetImpostoIPI(i));
         Result.AppendChild(GerarDetImpostoII(i));
       end;
+    end
+    else if ((nfe.Ide.finNFe = fnDebito) and (nfe.Ide.tpNFDebito = tdPagamentoAntecipado)) or
+      (nfe.Ide.gCompraGov.tpOperGov = togRecebimentoPagFornecPosterior) then
+    begin
+      Result.AppendChild(GerarDetImpostoICMS(i));
+      Result.AppendChild(GerarDetImpostoIPI(i));
     end;
 
     Result.AppendChild(GerarDetImpostoPIS(i));
@@ -1902,6 +1928,7 @@ begin
   end;
 
   // Reforma Tributária
+//  if (NFe.Det[i].Imposto.ISel.CSTIS <> cstisNenhum) and
   if (NFe.Det[i].Imposto.ISel.CSTIS <> '') and
      (NFe.Det[i].Imposto.ISel.vBCIS > 0) then
     Result.AppendChild(Gerar_ISel(NFe.Det[i].Imposto.ISel));
@@ -1939,6 +1966,7 @@ var
       cstPart90: Result := 'Part';
       cstRep41: Result := 'ST';
       cstRep60: Result := IfThen(NFe.infNFe.Versao < 4, '60', 'ST');
+      cstICMSPrevisto: Result := 'IP';
     end;
   end;
 
@@ -2064,11 +2092,19 @@ begin
       crtRegimeNormal, crtSimplesExcessoReceita:
       begin
         sTagTemp := BuscaTag(NFe.Det[i].Imposto.ICMS.CST);
-        xmlNode := Result.AddChild('ICMS' + sTagTemp);
-        xmlNode.AppendChild(AddNode(tcStr, 'N11', 'orig', 01,
-          01, 1, OrigTOStr(NFe.Det[i].Imposto.ICMS.orig), DSC_ORIG));
-        xmlNode.AppendChild(AddNode(tcStr, 'N12', 'CST', 02,
-          02, 1, CSTICMSTOStr(NFe.Det[i].Imposto.ICMS.CST), DSC_CST));
+
+        if sTagTemp <> 'IP' then
+        begin
+          xmlNode := Result.AddChild('ICMS' + sTagTemp);
+
+          xmlNode.AppendChild(AddNode(tcStr, 'N11', 'orig', 01, 01, 1,
+                            OrigTOStr(NFe.Det[i].Imposto.ICMS.orig), DSC_ORIG));
+
+          xmlNode.AppendChild(AddNode(tcStr, 'N12', 'CST', 02, 02, 1,
+                           CSTICMSTOStr(NFe.Det[i].Imposto.ICMS.CST), DSC_CST));
+        end
+        else
+          xmlNode := Result.AddChild('ICMSPrevistoPagtoAntecip');
 
         case NFe.Det[i].Imposto.ICMS.CST of
           cst00:
@@ -2729,10 +2765,27 @@ begin
               xmlNode.AppendChild(AddNode(tcDe2, 'N37', 'vICMSEfet', 01, 15, 1, NFe.Det[i].Imposto.ICMS.vICMSEfet, DSC_VICMSEFET));
             end;
           end;
+
+          cstICMSPrevisto:
+            xmlNode.AppendChild(AddNode(tcDe2, 'N31', 'vICMSPrevisto', 01, 15, 1,
+                     NFe.Det[i].Imposto.ICMS.vICMSPrevisto, DSC_VICMSPREVISTO));
         end;
       end;
+
       crtSimplesNacional, crtMEI:
       begin
+        // NT 2026.008 v1.01 - NF-e de débito por pagamento antecipado
+        // (tpNFDebito=06) ou tpOperGov=4: o grupo NB01 também é obrigatório
+        // para CRT 1/4 (regra NB01-30) e substitui o grupo ICMSSN.
+        if NFe.Det[i].Imposto.ICMS.CST = cstICMSPrevisto then
+        begin
+          xmlNode := Result.AddChild('ICMSPrevistoPagtoAntecip');
+
+          xmlNode.AppendChild(AddNode(tcDe2, 'N31', 'vICMSPrevisto', 01, 15, 1,
+                     NFe.Det[i].Imposto.ICMS.vICMSPrevisto, DSC_VICMSPREVISTO));
+          Exit;
+        end;
+
         //Grupo do Simples Nacional
         sTagTemp := CSOSNTOStrTagPos(NFe.Det[i].Imposto.ICMS.CSOSN);
         xmlNode := Result.AddChild('ICMSSN' + sTagTemp);
@@ -3060,6 +3113,7 @@ var
   xmlNode: TACBrXmlNode;
 begin
   Result := nil;
+
   if (NFe.Ide.modelo <> 55) and ((NFe.Det[i].Imposto.PIS.vBC = 0) and
     (NFe.Det[i].Imposto.PIS.pPIS = 0) and (NFe.Det[i].Imposto.PIS.vPIS = 0) and
     (NFe.Det[i].Imposto.PIS.qBCProd = 0) and
@@ -3226,6 +3280,7 @@ var
   xmlNode: TACBrXmlNode;
 begin
   Result := nil;
+
   if (NFe.Ide.modelo <> 55) and ((NFe.Det[i].Imposto.COFINS.vBC = 0) and
     (NFe.Det[i].Imposto.COFINS.pCOFINS = 0) and
     (NFe.Det[i].Imposto.COFINS.vCOFINS = 0) and
@@ -3512,6 +3567,9 @@ end;
 function TNFeXmlWriter.GerarTotal: TACBrXmlNode;
 begin
   Result := FDocument.CreateElement('total');
+
+  Result.AppendChild(AddNode(tcDe2, 'W60', 'vProdLiqTot', 1, 15, 0,
+                                       NFe.Total.vProdLiqTot, DSC_VPRODLIQTOT));
 
   Result.AppendChild(GerarTotalICMSTotal);
   Result.AppendChild(GerarTotalISSQNtot);

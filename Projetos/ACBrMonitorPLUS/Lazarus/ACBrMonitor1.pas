@@ -405,6 +405,8 @@ type
     cbxImpDetEspNFe: TCheckBox;
     cbxImpDocsReferenciados: TCheckBox;
     cbxImprimeXPedNitemPed: TCheckBox;
+    lblLeiauteDANFE: TLabel;
+    cbxLeiauteDANFE: TComboBox;
     cbxImpressora: TComboBox;
     cbxImpressoraNFCe: TComboBox;
     cbxImprimeContinuacaoDadosAdicionaisPrimeiraPagina: TCheckBox;
@@ -1819,6 +1821,7 @@ type
     procedure ACBrECF1MsgPoucoPapel(Sender: TObject);
     procedure bConfigClick(Sender: TObject);
     procedure edOnlyNumbers(Sender: TObject; var Key: char);
+    procedure edOnlyCNPJAlphaNum(Sender: TObject; var Key: char);
     procedure bECFTestarClick(Sender: TObject);
     procedure bECFLeituraXClick(Sender: TObject);
     procedure bECFAtivarClick(Sender: TObject);
@@ -5073,7 +5076,7 @@ end;
 
 procedure TFrmACBrMonitor.edtBOLCNPJKeyPress(Sender: TObject; var Key: char);
 begin
-  if not CharInSet( Key, [#8,'0'..'9'] ) then
+  if not CharInSet( Key, [#8,'0'..'9','A'..'Z','a'..'z'] ) then
     Key := #0;
 end;
 
@@ -5098,7 +5101,7 @@ end;
 procedure TFrmACBrMonitor.edtCNPJContadorKeyPress(Sender: TObject; var Key: char
   );
 begin
-  if not CharInSet( Key, [#8,'0'..'9'] ) then
+  if not CharInSet( Key, [#8,'0'..'9','A'..'Z','a'..'z'] ) then
     Key := #0;
 end;
 
@@ -5125,7 +5128,7 @@ end;
 
 procedure TFrmACBrMonitor.edtEmitCNPJKeyPress(Sender: TObject; var Key: char);
 begin
-  if not CharInSet( Key, [#8,'0'..'9'] ) then
+  if not CharInSet( Key, [#8,'0'..'9','A'..'Z','a'..'z'] ) then
     Key := #0;
 end;
 
@@ -5184,7 +5187,7 @@ end;
 
 procedure TFrmACBrMonitor.edtSwHCNPJKeyPress(Sender: TObject; var Key: char);
 begin
-  if not CharInSet( Key, [#8,'0'..'9'] ) then
+  if not CharInSet( Key, [#8,'0'..'9','A'..'Z','a'..'z'] ) then
     Key := #0;
 end;
 
@@ -6325,6 +6328,7 @@ begin
       rgImprimeDescAcrescItemNFe.ItemIndex:= ImprimeDescAcrescItemNFe;
       rgInfFormaPagNFe.ItemIndex          := ImprimirCampoFormaPagamento;
       cbxImprimeXPedNitemPed.Checked      := ImprimeXPedNitemPed;
+      cbxLeiauteDANFE.ItemIndex           := LeiauteDANFE;
     end;
 
     with Impressao.DACTE do
@@ -7712,6 +7716,7 @@ begin
         ImprimeDescAcrescItemNFe   := rgImprimeDescAcrescItemNFe.ItemIndex;
         ImprimirCampoFormaPagamento:= rgInfFormaPagNFe.ItemIndex;
         ImprimeXPedNitemPed        := cbxImprimeXPedNitemPed.Checked;
+        LeiauteDANFE               := cbxLeiauteDANFE.ItemIndex;
       end;
 
       with Impressao.DACTE do
@@ -8594,6 +8599,13 @@ end;
 procedure TFrmACBrMonitor.edOnlyNumbers(Sender: TObject; var Key: char);
 begin
   if not (Key in ['0'..'9', #13, #8]) then
+    Key := #0;
+end;
+
+procedure TFrmACBrMonitor.edOnlyCNPJAlphaNum(Sender: TObject; var Key: char);
+begin
+  Key := UpCase(Key);
+  if not CharInSet( Key, [#8, #13, '0'..'9', 'A'..'Z'] ) then
     Key := #0;
 end;
 
@@ -11623,6 +11635,7 @@ begin
       ACBrNFeDANFeRL1.ExibeCampoDePagamento:= TpcnInformacoesDePagamento(rgInfFormaPagNFe.ItemIndex);
       ACBrNFeDANFeRL1.ExibeTotalTributosItem:= cbxExibeTotalTributosItem.Checked;
       ACBrNFeDANFeRL1.ImprimeXPedNItemPed := cbxImprimeXPedNitemPed.Checked;
+      ACBrNFeDANFeRL1.LeiauteDANFE := TLeiauteDANFE(cbxLeiauteDANFE.ItemIndex);
     end
     else if ACBrNFe1.DANFE = ACBrNFeDANFCeFortesA4_1 then
     begin

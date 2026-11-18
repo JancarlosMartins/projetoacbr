@@ -327,7 +327,9 @@ begin
   AINIRec.WriteString('Emitente', 'IM', Emit.IM);
   AINIRec.WriteString('Emitente', 'CNAE', Emit.CNAE);
   AINIRec.WriteString('Emitente', 'CRT', CRTToStr(Emit.CRT));
+  AINIRec.WriteString('Emitente', 'tpRegimeIBSCBS', tpRegimeIBSCBSToStr(Emit.tpRegimeIBSCBS));
   AINIRec.WriteString('Emitente', 'ISUFEmit', Emit.ISUFEmit);
+
   AINIRec.WriteString('Emitente', 'xLgr', Emit.EnderEmit.xLgr);
   AINIRec.WriteString('Emitente', 'nro', Emit.EnderEmit.nro);
   AINIRec.WriteString('Emitente', 'xCpl', Emit.EnderEmit.xCpl);
@@ -508,6 +510,8 @@ begin
   AINIRec.WriteFloat(sSecao, 'qCom', Prod.qCom);
   AINIRec.WriteFloat(sSecao, 'vUnCom', Prod.vUnCom);
   AINIRec.WriteFloat(sSecao, 'vProd', Prod.vProd);
+  AINIRec.WriteFloat(sSecao, 'vUnComLiq', Prod.vUnComLiq);
+  AINIRec.WriteFloat(sSecao, 'vProdLiq', Prod.vProdLiq);
   AINIRec.WriteString(sSecao, 'cEANTrib', Prod.cEANTrib);
   AINIRec.WriteString(sSecao, 'cBarraTrib', Prod.cBarraTrib);
   AINIRec.WriteString(sSecao, 'uTrib', Prod.uTrib);
@@ -524,6 +528,7 @@ begin
   AINIRec.WriteString(sSecao, 'nRECOPI', Prod.nRECOPI);
   // Reforma Tributária
   AINIRec.WriteString(sSecao, 'indBemMovelUsado', TIndicadorExToStr(Prod.indBemMovelUsado));
+  AINIRec.WriteString(sSecao, 'cAtivSN', cAtivSNToStr(Prod.cAtivSN));
 end;
 
 procedure TNFeIniWriter.Gerar_NVE(AINIRec: TMemIniFile; NVE: TNVECollection;
@@ -950,6 +955,7 @@ begin
   AINIRec.WriteFloat(sSecao, 'qBCMonoRet', ICMS.qBCMonoRet);
   AINIRec.WriteFloat(sSecao, 'vICMSMonoOp', ICMS.vICMSMonoOp);
   AINIRec.WriteString(sSecao, 'indDeduzDeson', TIndicadorExToStr(ICMS.indDeduzDeson));
+  AINIRec.WriteFloat(sSecao, 'vICMSPrevisto', ICMS.vICMSPrevisto);
 end;
 
 procedure TNFeIniWriter.Gerar_ImpostoICMSUFDest(AINIRec: TMemIniFile;
@@ -1162,6 +1168,7 @@ end;
 
 procedure TNFeIniWriter.Gerar_Total(AINIRec: TMemIniFile; Total: TTotal);
 begin
+  AINIRec.WriteFloat('Total', 'vProdLiqTot', Total.vProdLiqTot);
   AINIRec.WriteFloat('Total', 'vBC', Total.ICMSTot.vBC);
   AINIRec.WriteFloat('Total', 'vICMS', Total.ICMSTot.vICMS);
   AINIRec.WriteFloat('Total', 'vICMSDeson', Total.ICMSTot.vICMSDeson);

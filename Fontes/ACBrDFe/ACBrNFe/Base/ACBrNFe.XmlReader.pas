@@ -365,6 +365,7 @@ begin
   NFe.Emit.IM      := ObterConteudo(ANode.Childrens.Find('IM'), tcStr);
   NFe.Emit.CNAE    := ObterConteudo(ANode.Childrens.Find('CNAE'), tcStr);
   NFe.Emit.CRT     := StrToCRT(ok, ObterConteudo(ANode.Childrens.Find('CRT'), tcStr));
+  NFe.Emit.tpRegimeIBSCBS := StrTotpRegimeIBSCBS(ObterConteudo(ANode.Childrens.Find('tpRegimeIBSCBS'), tcStr));
   NFe.Emit.ISUFEmit:= ObterConteudo(ANode.Childrens.Find('ISUFEmit'), tcStr);
 
   LerEmitEnderEmit(ANode.Childrens.Find('enderEmit'));
@@ -609,6 +610,8 @@ begin
   Item.Prod.qCom     := ObterConteudo(ANode.Childrens.Find('qCom'), tcDe4);
   Item.Prod.vUnCom   := ObterConteudo(ANode.Childrens.Find('vUnCom'), tcDe10);
   Item.Prod.vProd    := ObterConteudo(ANode.Childrens.Find('vProd'), tcDe2);
+  Item.Prod.vUnComLiq := ObterConteudo(ANode.Childrens.Find('vUnComLiq'), tcDe10);
+  Item.Prod.vProdLiq := ObterConteudo(ANode.Childrens.Find('vProdLiq'), tcDe2);
   Item.Prod.cEANTrib := ObterConteudo(ANode.Childrens.Find('cEANTrib'), tcStr);
   Item.Prod.cBarraTrib := ObterConteudo(ANode.Childrens.Find('cBarraTrib'), tcStr);
   Item.Prod.uTrib    := ObterConteudo(ANode.Childrens.Find('uTrib'), tcStr);
@@ -625,6 +628,7 @@ begin
   Item.Prod.nFCI     := ObterConteudo(ANode.Childrens.Find('nFCI'), tcStr);
   // Reforma Tributária
   Item.Prod.indBemMovelUsado := StrToTIndicadorEx(ObterConteudo(ANode.Childrens.Find('indBemMovelUsado'), tcStr));
+  Item.Prod.cAtivSN := StrTocAtivSN(ObterConteudo(ANode.Childrens.Find('cAtivSN'), tcStr));
 
   ANodes := ANode.Childrens.FindAll('NVE');
   for i := 0 to Length(ANodes) - 1 do
@@ -983,6 +987,7 @@ var
       ANodeImposto.ICMS.indDeduzDeson := tieNao;
 
     ANodeImposto.ICMS.cBenefRBC := ObterConteudo(ANodeICMS.Childrens.Find('cBenefRBC'), tcStr);
+    ANodeImposto.ICMS.vICMSPrevisto := ObterConteudo(ANodeICMS.Childrens.Find('vICMSPrevisto'), tcDe2);
   end;
 
 begin
@@ -1019,6 +1024,7 @@ begin
 
   LerICMS('ICMSPart', Item.Imposto);
   LerICMS('ICMSST', Item.Imposto);
+  LerICMS('ICMSPrevistoPagtoAntecip', Item.Imposto);
 
   if (AuxNode <> nil) then
   begin
@@ -1029,7 +1035,11 @@ begin
         cst90 : Item.Imposto.ICMS.CST := cstPart90;
       end;
     end
-    else if Assigned(AuxNode.Childrens.FindAnyNs('ICMSST')) then
+    else
+    if Assigned(AuxNode.Childrens.FindAnyNs('ICMSPrevistoPagtoAntecip')) then
+      Item.Imposto.ICMS.CST := cstICMSPrevisto
+    else
+    if Assigned(AuxNode.Childrens.FindAnyNs('ICMSST')) then
     begin
       case Item.Imposto.ICMS.CST of
         cst41 : Item.Imposto.ICMS.CST := cstRep41;
@@ -1354,6 +1364,7 @@ begin
   Ler_ISTot(ANode.Childrens.Find('ISTot'), NFe.Total.ISTot);
   Ler_IBSCBSTot(ANode.Childrens.Find('IBSCBSTot'), NFe.Total.IBSCBSTot);
 
+  NFe.Total.vProdLiqTot := ObterConteudo(ANode.Childrens.Find('vProdLiqTot'), tcDe2);
   NFe.Total.vNFTot := ObterConteudo(ANode.Childrens.Find('vNFTot'), tcDe2);
 end;
 

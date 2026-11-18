@@ -67,8 +67,13 @@ uses
   ACBrDANFCeFortesFrA4,
   Frm_Status,
   Frm_SelecionarCertificado,
-  Frm_ConfiguraSerial;
+  Frm_ConfiguraSerial, CheckLst;
 
+type
+  TNotasTecnicas = (nt2026006, nt2026007, nt2026008);
+  TNotasTecnicasSelecionadas = set of TNotasTecnicas;
+const
+  TNotasTecnicasArrayString: array [TNotasTecnicas] of string = ('NT 2026.006', 'NT 2026.007', 'NT 2026.008');
 type
   TfrmACBrNFe = class(TForm)
     pnlMenus: TPanel;
@@ -348,6 +353,8 @@ type
     btnSolicApropriacaoCredPres: TButton;
     btnNFCeListagemChaves: TButton;
     btnNFCeDownloadXML: TButton;
+    rgNotasTecnicas: TGroupBox;
+    clbNotasTecnicas: TCheckListBox;
 
     procedure FormDestroy(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -452,6 +459,8 @@ type
     procedure AtualizarSSLLibsCombo;
     procedure PrepararImpressao;
 
+    function NotasTecnicasSelecionadas: TNotasTecnicasSelecionadas;
+
     // Paginacao automatica da lista de chaves (SAE NFC-e): repete a consulta a
     // partir de dhEmisUltNfce enquanto cStat = 101 (lista incompleta)
     function ObterListaChavesCompleta(ADataHoraInicial, ADataHoraFinal: TDateTime;
@@ -486,6 +495,7 @@ uses
   ACBrNFe.EventoClass,
   ACBrNFe.RetObterDFe,
   ACBrDFe.Conversao,
+  ACBrDFe.RTC.Classes,
   pcnConversao,
   pcnConversaoNFe,
   ACBrDFeConfiguracoes,
@@ -651,7 +661,9 @@ var
   Ok: Boolean;
   BaseCalculo,
   ValorICMS: Double;
+  NTsSelecionadas: TNotasTecnicasSelecionadas;
 begin
+  NTsSelecionadas := NotasTecnicasSelecionadas;
   with ACBrNFe1.NotasFiscais.Add.NFe do
   begin
     Ide.natOp     := 'VENDA';
@@ -733,7 +745,8 @@ begin
     end;
 
     Emit.CNPJCPF           := edtEmitCNPJ.Text;
-    Emit.IE                := edtEmitIE.Text;
+    if not(nt2026007 in NTsSelecionadas) then
+      Emit.IE                := edtEmitIE.Text;
     Emit.xNome             := edtEmitRazao.Text;
     Emit.xFant             := edtEmitFantasia.Text;
 
@@ -821,6 +834,11 @@ begin
       Prod.qCom     := 1;
       Prod.vUnCom   := 100;
       Prod.vProd    := 100;
+      if nt2026008 in NTsSelecionadas then
+      begin
+        Prod.vUnComLiq := 100;
+        Prod.vProdLiq := 100;
+      end;
 
       Prod.cEANTrib  := '7896523206646';
       Prod.uTrib     := 'UN';
@@ -922,8 +940,12 @@ begin
           // Pode variar de um produto para outro.
 
           if Emit.CRT in [crtSimplesExcessoReceita, crtRegimeNormal] then
-            CST := cst00
-          else
+          begin
+            if nt2026008 in NTsSelecionadas then
+              CST := cstICMSPrevisto
+            else
+              CST := cst00;
+          end else
             CSOSN := csosn102;
 
           orig    := oeNacional;
@@ -939,6 +961,7 @@ begin
 
           ValorICMS := vBC * pICMS;
 
+          vICMSPrevisto := ValorICMS;
           vICMS   := ValorICMS;
           modBCST := dbisMargemValorAgregado;
           pMVAST  := 0;
@@ -1339,6 +1362,8 @@ begin
       // Valor total da NF-e com IBS / CBS / IS
       Total.vNFTot := 100;
     end;
+    if nt2026008 in NTsSelecionadas then
+      Total.vProdLiqTot := 100;
 
     Transp.modFrete := mfSemFrete; // NFC-e não pode ter FRETE
 
@@ -1353,6 +1378,18 @@ begin
       xPag := 'Caderneta';
       }
       vPag := 100;
+    end;
+
+    if nt2026006 in NTsSelecionadas then
+    begin
+      with pgtoVinc.pgto.New do
+      begin
+        tpMeioPgto := '17';
+        CNPJReceb := '05481336000137';
+        CNPJBasePSP := '05481336';
+        nPag := 1;
+        idTransacao := '1234567890123456';
+      end;
     end;
 
     // O grupo infIntermed só deve ser gerado nos casos de operação não presencial
@@ -1429,7 +1466,10 @@ var
 //    ProcReferenciado: TprocRefCollectionItem;
   Defensivo: TdefensivoCollectionItem;
   InfoPgto: TpagCollectionItem;
+  pgtoVinc: TpgtoCollectionItem;
+  NTsSelecionadas: TNotasTecnicasSelecionadas;
 begin
+  NTsSelecionadas := NotasTecnicasSelecionadas;
   NotaF := ACBrNFe1.NotasFiscais.Add;
   NotaF.NFe.Ide.natOp     := 'VENDA PRODUCAO DO ESTAB.';
   NotaF.NFe.Ide.indPag    := ipVista;
@@ -1527,7 +1567,8 @@ begin
   Referenciada.RefECF.nCOO    := '';          // |
   *)
   NotaF.NFe.Emit.CNPJCPF           := edtEmitCNPJ.Text;
-  NotaF.NFe.Emit.IE                := edtEmitIE.Text;
+  if not(nt2026007 in NTsSelecionadas) then
+    NotaF.NFe.Emit.IE                := edtEmitIE.Text;
   NotaF.NFe.Emit.xNome             := edtEmitRazao.Text;
   NotaF.NFe.Emit.xFant             := edtEmitFantasia.Text;
 
@@ -1630,7 +1671,11 @@ begin
   Produto.Prod.qCom     := 1;
   Produto.Prod.vUnCom   := 100;
   Produto.Prod.vProd    := 100;
-
+  if nt2026008 in NTsSelecionadas then
+  begin
+    Produto.Prod.vUnComLiq := 100;
+    Produto.Prod.vProdLiq := 100;
+  end;
   Produto.Prod.cEANTrib  := '7896523206646';
   Produto.Prod.uTrib     := 'UN';
   Produto.Prod.qTrib     := 1;
@@ -1869,15 +1914,22 @@ begin
         vICMSST := 0;
         pRedBC  := 0;
       }
-        CST := cst20;
-        modBC := dbiMargemValorAgregado;
-        pRedBC := 0;
-        vBC := 100;
-        pICMS := 18;
-        vICMS := 18;
-        vICMSDeson := 8;
-        motDesICMS := mdiOutros;
-        indDeduzDeson := tieSim;
+        if nt2026008 in NTsSelecionadas then
+        begin
+          CST := cstICMSPrevisto;
+          vICMSPrevisto := 18;
+        end else
+        begin
+          CST := cst20;
+          modBC := dbiMargemValorAgregado;
+          pRedBC := 0;
+          vBC := 100;
+          pICMS := 18;
+          vICMS := 18;
+          vICMSDeson := 8;
+          motDesICMS := mdiOutros;
+          indDeduzDeson := tieSim;
+        end;
       end
       else
       begin
@@ -2364,6 +2416,8 @@ begin
     // Valor total da NF-e com IBS / CBS / IS
     NotaF.NFe.Total.vNFTot := 100;
   end;
+  if nt2026008 in NTsSelecionadas then
+    NotaF.NFe.Total.vProdLiqTot := 100;
 
   NotaF.NFe.Transp.modFrete := mfContaEmitente;
   NotaF.NFe.Transp.Transporta.CNPJCPF  := '';
@@ -2464,6 +2518,16 @@ begin
   InfoPgto.CNPJ      := '05481336000137';
   InfoPgto.tBand     := bcVisa;
   InfoPgto.cAut      := '1234567890123456';
+
+  if nt2026006 in NTsSelecionadas then
+  begin
+    pgtoVinc := NotaF.NFe.pgtoVinc.pgto.New;
+    pgtoVinc.tpMeioPgto := '17';
+    pgtoVinc.CNPJReceb := '05481336000137';
+    pgtoVinc.CNPJBasePSP := '05481336';
+    pgtoVinc.nPag := 1;
+    pgtoVinc.idTransacao := '1234567890123456';
+  end;
 
 // YA09 Troco
 // Regra opcional: Informar se valor dos pagamentos maior que valor da nota.
@@ -6142,6 +6206,7 @@ var
   N: TACBrPosPrinterModelo;
   O: TACBrPosPaginaCodigo;
   P: TpcnVersaoQrCode;
+  R: TNotasTecnicas;
 begin
   ffrmstatus := Tfrmstatus.create(self);
 
@@ -6197,6 +6262,10 @@ begin
   for P := Low(TpcnVersaoQrCode) to High(TpcnVersaoQrCode) do
      cbVersaoQRCode.Items.Add( GetEnumName(TypeInfo(TpcnVersaoQrCode), integer(P) ) );
   cbVersaoQRCode.ItemIndex := 0;
+
+  clbNotasTecnicas.Items.Clear;
+  for R := Low(TNotasTecnicas) to High(TNotasTecnicas) do
+    clbNotasTecnicas.Items.Add(TNotasTecnicasArrayString[R]);
 
   cbxPorta.Items.Clear;
   ACBrPosPrinter1.Device.AcharPortasSeriais( cbxPorta.Items );
@@ -6614,6 +6683,16 @@ begin
 
   if ACBrNFe1.NotasFiscais.Count > 0then
     MemoResp.Lines.Add('Empresa: ' + ACBrNFe1.NotasFiscais.Items[0].NFe.Emit.xNome);
+end;
+
+function TfrmACBrNFe.NotasTecnicasSelecionadas: TNotasTecnicasSelecionadas;
+var
+  NT: TNotasTecnicas;
+begin
+  Result := [];
+  for NT := Low(TNotasTecnicas) to High(TNotasTecnicas) do
+    if clbNotasTecnicas.Checked[ord(NT)] then
+      Include(Result, NT);
 end;
 
 procedure TfrmACBrNFe.PathClick(Sender: TObject);
